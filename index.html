@@ -25,6 +25,7 @@
             <li><a href="#" data-tab="report-lost">Report Lost</a></li>
             <li><a href="#" data-tab="report-found">Report Found</a></li>
             <li><a href="#" data-tab="search">Search Database</a></li>
+            <li><a href="#" data-tab="auth" id="nav-auth">Sign In</a></li>
         </ul>
     </nav>
 
@@ -156,6 +157,61 @@
 
             <div class="items-grid" id="search-results-grid">
                 <!-- Search results populated by JS -->
+            </div>
+        </section>
+
+        <!-- Auth Section -->
+        <section id="auth" class="tab-content">
+            <div class="auth-container">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-form="login">Login</button>
+                    <button class="auth-tab" data-form="signup">Create Account</button>
+                </div>
+
+                <form id="form-login" class="glass-form auth-form active">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" required placeholder="name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Password</label>
+                        <input type="password" id="login-password" required placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="btn primary-btn">Login</button>
+                </form>
+
+                <form id="form-signup" class="glass-form auth-form">
+                    <div class="form-group">
+                        <label for="signup-name">Full Name</label>
+                        <input type="text" id="signup-name" required placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" required placeholder="name@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-phone">Phone Number</label>
+                        <input type="tel" id="signup-phone" required placeholder="01xxxxxxxxx">
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password</label>
+                        <input type="password" id="signup-password" required placeholder="Create a strong password">
+                    </div>
+                    <button type="submit" class="btn secondary-btn">Create Account</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profile" class="tab-content">
+            <header class="section-header">
+                <h2 id="profile-name">User Profile</h2>
+                <p id="profile-email">email@example.com</p>
+                <button id="logout-btn" class="btn-outline" style="margin-top: 1rem; color: var(--danger); border-color: var(--danger);">Logout</button>
+            </header>
+            <div class="recent-items">
+                <h3>My Reported Items</h3>
+                <div class="items-grid" id="my-items-grid"></div>
             </div>
         </section>
 

@@ -26,6 +26,12 @@ class LocalDB {
                     store.createIndex('status', 'status', { unique: false }); // 'active' or 'resolved'
                     store.createIndex('category', 'category', { unique: false });
                 }
+
+                // Create object store for users
+                if (!db.objectStoreNames.contains('users')) {
+                    const userStore = db.createObjectStore('users', { keyPath: 'id', autoIncrement: true });
+                    userStore.createIndex('email', 'email', { unique: true });
+                }
             };
         });
     }
@@ -72,6 +78,28 @@ class LocalDB {
             };
         });
     }
+
+    // User Methods
+    addUser(user) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['users'], 'readwrite');
+            const store = transaction.objectStore('users');
+            const request = store.add(user);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    getUserByEmail(email) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['users'], 'readonly');
+            const store = transaction.objectStore('users');
+            const index = store.index('email');
+            const request = index.get(email);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
 }
 
 // App Logic
@@ -80,6 +108,7 @@ const db = new LocalDB('LostAndFoundDB');
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         await db.init();
+        checkSession();
         loadDashboard();
     } catch (e) {
         console.error("Failed to initialize database", e);
@@ -116,8 +145,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Form Submissions
     document.getElementById('form-lost').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (!user) {
+            showToast("Please sign in to report an item", true);
+            document.getElementById('nav-auth').click();
+            return;
+        }
+
         const item = {
             type: 'lost',
+            userId: user.id,
             title: document.getElementById('lost-title').value,
             category: document.getElementById('lost-category').value,
             location: document.getElementById('lost-location').value,
@@ -134,8 +171,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('form-found').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const user = JSON.parse(localStorage.getItem('currentUser'));
+        if (!user) {
+            showToast("Please sign in to register an item", true);
+            document.getElementById('nav-auth').click();
+            return;
+        }
+
         const item = {
             type: 'found',
+            userId: user.id,
             title: document.getElementById('found-title').value,
             category: document.getElementById('found-category').value,
             location: document.getElementById('found-location').value,
@@ -178,7 +223,87 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById(`schema-${tab.dataset.schema}`).classList.add('active');
         };
     });
+
+    // Auth Tab Switching
+    const authTabs = document.querySelectorAll('.auth-tab');
+    const authForms = document.querySelectorAll('.auth-form');
+
+    authTabs.forEach(tab => {
+        tab.onclick = () => {
+            authTabs.forEach(t => t.classList.remove('active'));
+            authForms.forEach(f => f.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById(`form-${tab.dataset.form}`).classList.add('active');
+        };
+    });
+
+    // Signup Submission
+    document.getElementById('form-signup').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user = {
+            name: document.getElementById('signup-name').value,
+            email: document.getElementById('signup-email').value,
+            phone: document.getElementById('signup-phone').value,
+            password: document.getElementById('signup-password').value
+        };
+
+        try {
+            await db.addUser(user);
+            showToast("Account created! Please login.");
+            document.querySelector('.auth-tab[data-form="login"]').click();
+        } catch (err) {
+            showToast("Email already exists!", true);
+        }
+    });
+
+    // Login Submission
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+
+        const user = await db.getUserByEmail(email);
+        if (user && user.password === password) {
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            showToast(`Welcome back, ${user.name}!`);
+            checkSession();
+            // Go to dashboard
+            document.querySelector('.nav-links a[data-tab="dashboard"]').click();
+        } else {
+            showToast("Invalid email or password", true);
+        }
+    });
+
+    // Logout
+    document.getElementById('logout-btn').onclick = () => {
+        localStorage.removeItem('currentUser');
+        showToast("Logged out successfully");
+        checkSession();
+        document.querySelector('.nav-links a[data-tab="dashboard"]').click();
+    };
 });
+
+function checkSession() {
+    const user = JSON.parse(localStorage.getItem('currentUser'));
+    const navAuth = document.getElementById('nav-auth');
+    
+    if (user) {
+        navAuth.textContent = user.name.split(' ')[0];
+        navAuth.setAttribute('data-tab', 'profile');
+        document.getElementById('profile-name').textContent = user.name;
+        document.getElementById('profile-email').textContent = user.email;
+        loadMyItems(user.id);
+    } else {
+        navAuth.textContent = 'Sign In';
+        navAuth.setAttribute('data-tab', 'auth');
+    }
+}
+
+async function loadMyItems(userId) {
+    const items = await db.getAllItems();
+    const myItems = items.filter(item => item.userId === userId);
+    renderItems(myItems, 'my-items-grid');
+}
 
 async function loadDashboard() {
     const items = await db.getAllItems();

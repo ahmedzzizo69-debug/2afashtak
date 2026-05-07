@@ -15,6 +15,7 @@ CREATE TABLE Users (
     UserID INT PRIMARY KEY IDENTITY(1,1),
     FullName NVARCHAR(100) NOT NULL,
     Email NVARCHAR(100) UNIQUE NOT NULL,
+    Password NVARCHAR(255) NOT NULL, -- Added for authentication
     PhoneNumber NVARCHAR(20),
     CreatedAt DATETIME DEFAULT GETDATE()
 );
